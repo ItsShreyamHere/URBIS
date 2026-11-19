@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>URBIS</title><link rel="icon" href="favicon.png">
+<style>:root{--bg:#fff;--fg:#1a1a1a;--mut:#555;--card:#f4f5f7;--acc:#0b5fff}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#eee;--mut:#aaa;--card:#1f2228;--acc:#6ea0ff}}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:32px 16px}h1{font-size:2.2rem;margin:.2em 0}h2{margin-top:1.8em}
+pre{background:var(--card);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9rem}a{color:var(--acc)}
+.mut{color:var(--mut);font-size:.9rem}</style></head><body><main>
+<img src="logo.png" alt="" height="56">
+<h1>URBIS</h1>
+<p>Open AI that finds slums and informal settlements in any city, from free satellite imagery and open building data. Draw a box around a city, let the model score it, review the boxes it is unsure about, then export a map and house counts.</p>
+<p><b>URBIS runs on your own computer.</b> That keeps it free and keeps your reviews private. Install once, then open it in your browser at <code>localhost:8770</code>.</p>
+
+<h2>Install</h2>
+<p>Needs git, Python 3.11 or newer, about 4 GB of disk and an internet connection. macOS and Linux (Windows: use WSL).</p>
+<pre>curl -fsSL https://urbis.shreyam.me/install.sh | sh
+cd urbis &amp;&amp; ./urbis.sh</pre>
+<p>The browser opens at <a href="http://localhost:8770">http://localhost:8770</a>. Press Ctrl-C in the terminal to stop it. A computer with a GPU or Apple chip scores a city in minutes; on a plain CPU, expect several times longer.</p>
+
+<h2>Tutorial</h2>
+<ol>
+<li><b>Create an account.</b> It stays on your computer.</li>
+<li><b>New city.</b> Search a place, drag the box (1 to 600 km²), name it, press Create city.</li>
+<li><b>Wait for set-up</b> (about 6 min plus 0.3 min per km² on a laptop GPU). It downloads building footprints and satellite tiles, then scores every 100 m box with buildings.</li>
+<li><b>Review.</b> Boxes come most-likely first. Press Y (slum), N (not slum), S (skip), Z (zoom). The page says <i>Review complete</i> when little slum is left to find.</li>
+<li><b>Rebuild outlines</b> to draw settlement outlines and list houses, then <b>export</b> GeoJSON, KML, GeoPackage, Shapefile, CSV, GeoTIFF or an HTML report.</li>
+</ol>
+
+<h2>Be honest about accuracy</h2>
+<p>On cities it never saw, about 38 % of the model's top marks are real slums when it finds 80 % of them. The human review is what makes the map reliable. House counts are a minimum, because tightly packed roofs merge into one footprint.</p>
+
+<h2>Data and credits</h2>
+<p class="mut">Imagery: Esri World Imagery (Esri, Maxar, Earthstar Geographics and the GIS User Community); use is subject to Esri's terms. Buildings: Overture Maps Foundation (Google, Microsoft, OpenStreetMap contributors). Place search: OpenStreetMap Nominatim, © OpenStreetMap contributors (ODbL). Slum polygons used for training include CC BY-NC sources, so use URBIS output for non-commercial purposes unless you check each source's licence. Model backbone: DINOv3 (Meta).</p>
+</main></body></html>
