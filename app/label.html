@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dev labelling · URBIS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"><link rel="stylesheet" href="app.css">
+<style>
+.lab{max-width:1280px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.views{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.view{position:relative;margin:0}.lmap{width:100%;aspect-ratio:1;border-radius:6px;background:var(--soft)}
+.view figcaption{font-size:13px;color:var(--muted);margin-top:4px}
+.view i{position:absolute;border:2px solid #ffd400;outline:1px solid #000;pointer-events:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+textarea{width:100%;min-height:70px;font:15px var(--font);padding:8px;border:1px solid var(--line);border-radius:6px}
+.big{font-size:17px;padding:10px 22px}
+.sel{outline:3px solid var(--blue)}
+@media (max-width:800px){.views{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="page">
+<header class="top"><a class="brand" href="/cities.html"><img class="logo" src="img/logo_128.png" alt="" width="28" height="28">URBIS</a><span class="sep">/</span><span>Dev labelling</span><span class="grow"></span><span id="cnt" class="pill"></span></header>
+<main class="lab">
+  <p class="note"><b id="verdict" class="pill"></b> Judge the yellow 100 m box by eye. The official map's answer is hidden. <b id="src"></b></p>
+  <div class="views">
+    <figure class="view"><div id="v1" class="lmap"></div><figcaption>Close: 160 m (what the model sees first)</figcaption></figure>
+    <figure class="view"><div id="v2" class="lmap"></div><figcaption>Wide: 640 m (model's context view)</figcaption></figure>
+    <figure class="view"><div id="v3" class="lmap"></div><figcaption>Area: 2 km (city context)</figcaption></figure>
+  </div>
+  <div class="row"><b>Go to a place:</b><input id="at" placeholder="12.9963, 77.6656  (paste from Google Maps: right-click → copy coordinates)" style="flex:1;min-width:260px;font:15px var(--font);padding:7px;border:1px solid var(--line);border-radius:6px"><button class="btn" id="go">Label this place</button></div>
+  <div class="row"><b>Open this place:</b>
+    <a class="btn" id="gm" target="_blank" rel="noopener">Google Maps (satellite)</a><a class="btn" id="gsv" target="_blank" rel="noopener">Street View</a><a class="btn" id="ge" target="_blank" rel="noopener">Google Earth (history)</a>
+    <span class="note">Centre of the box: <span class="mono" id="ll"></span></span></div>
+  <div class="row"><b>Slum?</b>
+    <button class="btn big" data-a="yes">Slum <kbd>S</kbd></button><button class="btn big" data-a="no">Not slum <kbd>N</kbd></button><button class="btn big" data-a="unsure">Unsure <kbd>U</kbd></button>
+    <span class="grow"></span><b>Were these views useful to decide?</b>
+    <button class="btn" data-u="1">Not useful</button><button class="btn" data-u="2">Somewhat</button><button class="btn" data-u="3">Enough</button>
+  </div>
+  <textarea id="cm" placeholder="Comment: what you see, what would help you decide (closer zoom, street view, older imagery, roads, roofs...)"></textarea>
+  <div class="row"><button class="btn primary big" id="save">Save and next <kbd>Enter</kbd></button><span class="note" id="msg"></span></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script><script src="common.js"></script>
+<script>
+const c = new URLSearchParams(location.search).get("city"); let cur, ans = null, use = "";
+// three small maps (pan and zoom allowed), each fitted to its view width around the box
+const M = ["v1", "v2", "v3"].map(id => { const m = L.map(id, { attributionControl: false, zoomSnap: 0.25 });
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 21, maxNativeZoom: 19 }).addTo(m); m.box = null; return m; });
+const show = (m, lon, lat, w) => { const dy = w / 2 / 111320, dx = dy / Math.cos(lat * Math.PI / 180); m.fitBounds([[lat - dy, lon - dx], [lat + dy, lon + dx]], { animate: false });
+  if (m.box) m.box.remove(); m.box = L.polygon(cur.corners.map(([x, y]) => [y, x]), { color: "#ffd400", weight: 3, fill: false }).addTo(m); };
+async function next(at) {
+  try { cur = await api(`/city/${encodeURIComponent(c)}/devnext` + (at ? "?at=" + encodeURIComponent(at) : "")); } catch (x) { $("#msg").textContent = x.message; return; } ans = null; use = ""; $("#cm").value = ""; $("#msg").textContent = "";
+  $$("[data-a],[data-u]").forEach(b => b.classList.remove("sel"));
+  [160, 640, 2000].forEach((w, k) => show(M[k], cur.lon, cur.lat, w));
+  $("#cnt").textContent = `${cur.done} labelled`;
+  const ll = `${cur.lat.toFixed(6)},${cur.lon.toFixed(6)}`;
+  $("#gm").href = `https://www.google.com/maps/@${ll},120m/data=!3m1!1e3`; $("#gsv").href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${ll}`;
+  $("#ge").href = `https://earth.google.com/web/@${ll},900d`; $("#ll").textContent = ll;
+  $("#src").textContent = `Picked as: ${cur.source.replace("new_type", "a kind of place not seen yet").replace("likely_slum", "most likely slum from your labels").replace("uncertain", "the model is unsure").replace("your_place", "the place you chose").replace("claude_pick:", "Claude looked at the imagery:").replace("india_top", "the India model's top slum guess").replace("india_unsure", "the India model is unsure").replace("like_your_slums", "looks most like the slums you confirmed")} · base model rank top ${cur.rank_pct} %.`;
+  $("#verdict").textContent = cur.india_p == null ? "" : `Model says: ${cur.india_p >= .5 ? "SLUM" : "not slum"} (${Math.round(100 * cur.india_p)} %)`; $("#verdict").className = "pill " + (cur.india_p >= .5 ? "yes" : "no");
+}
+$$("[data-a]").forEach(b => b.onclick = () => { ans = b.dataset.a; $$("[data-a]").forEach(x => x.classList.toggle("sel", x === b)); });
+$$("[data-u]").forEach(b => b.onclick = () => { use = b.dataset.u; $$("[data-u]").forEach(x => x.classList.toggle("sel", x === b)); });
+async function save() {
+  if (!ans) { $("#msg").textContent = "Choose Slum, Not slum or Unsure first."; return; }
+  await api(`/city/${encodeURIComponent(c)}/devlabel`, { method: "POST", body: JSON.stringify({ ...cur, answer: ans, useful: use, comment: $("#cm").value }) }); next();
+}
+$("#save").onclick = save; $("#go").onclick = () => next($("#at").value.replace(/\s/g, ""));
+document.onkeydown = e => { if (e.target === $("#at")) return; if (e.target === $("#cm")) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); } return; }
+  const k = { s: "yes", n: "no", u: "unsure" }[e.key.toLowerCase()]; if (k) $(`[data-a=${k}]`).click(); if (e.key === "Enter") save(); };
+userMenu().catch(() => {}).then(() => next());
+</script>
+</body>
+</html>

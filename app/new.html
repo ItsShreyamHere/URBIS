@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New city · URBIS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="/" title="URBIS home"><img class="logo" src="img/logo_128.png" alt="" width="28" height="28">URBIS</a><span class="sep">/</span><a class="toplink" href="/cities.html">Your cities</a><span class="sep">/</span><b>New city</b><span class="grow"></span><span id="user" class="usermenu"></span></header>
+<main>
+  <aside>
+    <section>
+      <div class="box">
+        <div class="boxhead"><span class="stepn"><span class="num">1</span>Find the city</span></div>
+        <div class="boxbody">
+          <form id="sf" class="row"><input id="q" placeholder="City, district or address" aria-label="Search place"><button class="btn">Search</button></form>
+          <ul class="results" id="res"></ul>
+        </div>
+      </div>
+      <div class="box">
+        <div class="boxhead"><span class="stepn"><span class="num">2</span>Area to map</span></div>
+        <div class="boxbody">
+          <p class="small">Starts as a quick 3 × 3 km test area (about 5 min). Drag the corner handles to map more, or <button class="linkbtn" id="draw">draw a new box</button> on the map. Up to 600 km².</p>
+          <div class="kv"><span>Area</span><b id="km2">—</b></div>
+          <div class="kv"><span>Estimated set-up time</span><b id="eta">—</b></div>
+          <div class="kv"><span>Box</span><span class="mono" id="bb">—</span></div>
+        </div>
+      </div>
+      <div class="box">
+        <div class="boxhead"><span class="stepn"><span class="num">3</span>Name and start</span></div>
+        <div class="boxbody">
+          <label class="lbl">Name <input id="name" placeholder="e.g. Kisumu"></label>
+          <p class="err" id="err" hidden></p>
+          <button class="btn primary wide" id="go" disabled>Create city</button>
+          <p class="small muted" id="gohint">Search a place first, or draw a box on the map.</p>
+          <p class="small muted">URBIS downloads building footprints, then scores every built-up 100 m box with the slum model on this computer. You can leave this page; the city appears under Your cities.</p>
+        </div>
+      </div>
+    </section>
+  </aside>
+  <div id="map"></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="common.js"></script>
+<script>
+userMenu();
+const map = L.map("map").setView([10, 20], 3);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery Esri" }).addTo(map);
+let rect = null, h1 = null, h2 = null, drawing = false, start = null;
+const handle = () => L.divIcon({ className: "", html: '<span class="handle"></span>', iconSize: [14, 14], iconAnchor: [7, 7] });
+function setBox(sw, ne) {
+  const b = L.latLngBounds(sw, ne);
+  if (!rect) {
+    rect = L.rectangle(b, { color: "#fff", weight: 2, fillColor: "#000", fillOpacity: .12, dashArray: "6 4" }).addTo(map);
+    h1 = L.marker(b.getSouthWest(), { draggable: true, icon: handle() }).addTo(map); h2 = L.marker(b.getNorthEast(), { draggable: true, icon: handle() }).addTo(map);
+    [h1, h2].forEach(h => h.on("drag", () => setBox(h1.getLatLng(), h2.getLatLng())));
+  }
+  rect.setBounds(b); h1.setLatLng(b.getSouthWest()); h2.setLatLng(b.getNorthEast()); info();
+}
+function bbox() { const b = rect.getBounds(); return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map(v => +v.toFixed(5)); }
+function info() {
+  const [w, s, e, n] = bbox(), km2 = (e - w) * 111.32 * Math.cos((s + n) / 2 * Math.PI / 180) * (n - s) * 110.57;
+  $("#km2").textContent = km2.toFixed(1) + " km²" + (km2 > 600 ? " (too large)" : km2 < 1 ? " (too small)" : "");
+  const min = Math.max(2, Math.round(km2 * 0.6));   // measured: 3.7 km² Mathare 2.5 min, 9 km² Kibera 5 min, 20 km² Kisumu 12 min
+  $("#eta").textContent = min < 60 ? `about ${min} min` : `about ${(min / 60).toFixed(1)} h`;
+  $("#bb").textContent = [w, s, e, n].join(", "); $("#go").disabled = km2 > 600 || km2 < 1 || !$("#name").value.trim();
+  $("#gohint").textContent = km2 > 600 ? "The area is too large: drag the corners in (up to 600 km²)." : km2 < 1 ? "The area is too small: draw at least 1 km²." : !$("#name").value.trim() ? "Give the city a name." : ""; $("#gohint").hidden = !$("#gohint").textContent;
+}
+$("#name").oninput = () => rect && info();
+$("#sf").onsubmit = async e => {
+  e.preventDefault(); const q = $("#q").value.trim(); if (!q) return; $("#res").innerHTML = "<li class='muted'>Searching…</li>";
+  try {
+    const r = await api("/geocode?q=" + encodeURIComponent(q));
+    $("#res").innerHTML = r.length ? r.map((x, i) => `<li><button class="linkbtn" data-i="${i}">${esc(x.name)}</button></li>`).join("") : "<li class='muted'>No match.</li>";
+    $$("#res button").forEach(b => b.onclick = () => pick(r[+b.dataset.i]));
+    if (r.length) pick(r[0]);
+  } catch (x) { $("#res").innerHTML = `<li class="err">${esc(x.message)}</li>`; }
+};
+function pick(x) {
+  let [w, s, e, n] = x.bbox; const kx = 111.32 * Math.cos(x.lat * Math.PI / 180), ky = 110.57, half = 1.5;   // default: a quick 3 x 3 km box around the place's centre; drag the corners to map more
+  if ((e - w) * kx > 2 * half) { w = x.lon - half / kx; e = x.lon + half / kx; }
+  if ((n - s) * ky > 2 * half) { s = x.lat - half / ky; n = x.lat + half / ky; }
+  if ((e - w) * kx < 2) { w = x.lon - 1 / kx; e = x.lon + 1 / kx; } if ((n - s) * ky < 2) { s = x.lat - 1 / ky; n = x.lat + 1 / ky; }
+  setBox([s, w], [n, e]); map.fitBounds(rect.getBounds().pad(.3));
+  if (!$("#name").value) $("#name").value = x.name.split(",")[0]; info();
+}
+$("#draw").onclick = () => { drawing = true; map.dragging.disable(); map.getContainer().style.cursor = "crosshair"; };
+map.on("mousedown", e => { if (drawing) start = e.latlng; });
+map.on("mousemove", e => { if (drawing && start) setBox(start, e.latlng); });
+map.on("mouseup", e => { if (drawing && start) { setBox(start, e.latlng); drawing = false; start = null; map.dragging.enable(); map.getContainer().style.cursor = ""; } });
+$("#go").onclick = async () => {
+  $("#err").hidden = true; $("#go").disabled = true;
+  try { const r = await api("/cities", { method: "POST", body: JSON.stringify({ name: $("#name").value, bbox: bbox() }) }); location.href = "/city.html?city=" + encodeURIComponent(r.id); }
+  catch (x) { $("#err").textContent = x.message; $("#err").hidden = false; $("#go").disabled = false; }
+};
+</script>
+</body>
+</html>

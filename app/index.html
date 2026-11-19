@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>URBIS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="page">
+<header class="top">
+  <a class="brand" href="/"><img class="logo" src="img/logo_128.png" alt="" width="28" height="28">URBIS</a>
+  <span class="grow"></span>
+  <span id="auth"><a class="toplink" href="/login.html">Sign in</a>
+  <a class="btn inv" href="/login.html?new=1">Create account</a></span>
+</header>
+<main class="doc wide">
+  <section class="hero two">
+    <div>
+      <span class="logowrap"><img class="herologo" src="img/logo.png" alt="URBIS logo" width="96" height="96"><img class="stairs" src="img/stairs_light.svg" alt=""></span>
+      <p class="eyebrow">Urban intelligence for informal settlements</p>
+      <h1>Map every informal settlement in a city, and count its houses.</h1>
+      <p class="lead">More than a billion people live in slums and informal settlements, and many of these places are missing from official maps. URBIS finds them in satellite imagery, asks a city official to confirm the doubtful places, then draws each settlement's boundary and every house, numbered.</p>
+      <p class="actions"><a class="btn primary big" href="/login.html?new=1">Map a city</a><a class="btn big" href="/login.html">Sign in</a></p>
+    </div>
+    <figure class="shot"><img src="img/hero_map.jpg" alt="URBIS map of a settlement in Gqeberha, South Africa, with every house outlined and numbered" width="577" height="447"></figure>
+  </section>
+
+  <section class="stats4" aria-label="Results">
+    <div><b>99 %</b><span>of the slum area in settlements of 3 ha or more found after reviewing 10 % of a city's built-up area (23 test cities)</span></div>
+    <div><b>23</b><span>test cities the model had never seen, in Brazil, Argentina, South Africa and India</span></div>
+    <div><b>31 %</b><span>closer to official settlement boundaries than a grid map (overlap .71 vs .54)</span></div>
+    <div><b>12 min</b><span>to prepare a 20 km² area of Kisumu, 61,590 buildings, on a laptop</span></div>
+  </section>
+
+  <section class="gallery">
+    <h2>What a city gets</h2>
+    <div class="figs">
+      <figure><img src="img/shot_city.jpg" alt="Settlement outlines over satellite imagery with a table of area, houses and density" width="800" height="471" loading="lazy">
+        <figcaption><b>Settlement map.</b> Boundaries, area, house count and density for every settlement, here in Gqeberha, South Africa.</figcaption></figure>
+      <figure><img src="img/shot_houses.jpg" alt="Close-up with each house drawn as a polygon and numbered" width="800" height="471" loading="lazy">
+        <figcaption><b>Every house, numbered.</b> One polygon per building, numbered within its settlement, ready for surveys and service planning.</figcaption></figure>
+      <figure><img src="img/shot_review.jpg" alt="Review screen asking whether a 100 m box is a slum, with the model's rank" width="800" height="471" loading="lazy">
+        <figcaption><b>AI-guided review.</b> The model shows the most likely places first and learns from each answer; URBIS says when the map is complete.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="steps" id="how">
+    <div><span class="num">1</span><h3>Choose the area</h3><p>Search for a city and set the box to map: 3 × 3 km for a quick test (about 5 min), up to 600 km².</p></div>
+    <div><span class="num">2</span><h3>The model scores it</h3><p>Every built-up 100 m box is scored by the URBIS model, a satellite vision transformer trained on official slum maps. Building footprints come from Overture Maps.</p></div>
+    <div><span class="num">3</span><h3>You confirm</h3><p>Answer slum or not slum, most likely first. The order adapts to your answers.</p></div>
+    <div><span class="num">4</span><h3>Map and export</h3><p>Outlines, area, houses and density. GeoJSON, KML, GeoPackage, Shapefile, FlatGeobuf, CSV, GeoTIFF and a printable report.</p></div>
+  </section>
+
+  <section class="facts">
+    <h2>Built for city governments</h2>
+    <table class="plain">
+      <tr><th>Any city</th><td>One general model works on cities it has never seen. It never uses labels of the city being mapped.</td></tr>
+      <tr><th>People in the loop</th><td>The AI ranks; city officials decide. Every settlement on the map was confirmed by a person.</td></tr>
+      <tr><th>Every house</th><td>Each building is its own numbered polygon, from open footprint maps (Google, Microsoft, OpenStreetMap).</td></tr>
+      <tr><th>Private by design</th><td>Runs on the city's own computer. Imagery from Esri World Imagery; place search from OpenStreetMap.</td></tr>
+      <tr><th>Fits existing tools</th><td>Nine export formats open directly in QGIS, ArcGIS, Google Earth and Excel.</td></tr>
+    </table>
+  </section>
+  <section class="cta">
+    <img src="img/logo.png" alt="URBIS logo" width="150" height="150">
+    <div><h2>Map your first city in minutes</h2><p class="lead">Search a place, keep the 3 × 3 km test box, and URBIS has it ready for review in about 5 minutes.</p>
+    <p class="actions"><a class="btn primary big" href="/login.html?new=1">Map a city</a></p></div>
+  </section>
+</main>
+<footer class="foot two">
+  <span class="footbrand"><img src="img/logo_128.png" alt="URBIS logo" width="28" height="28"><span><b>URBIS</b> is a Shreyam Mandal project.</span></span>
+  <span>Contact: <span class="mono sel">urbisx46@gmail.com</span></span>
+</footer>
+<script>
+// signed in: header and buttons go to the workspace instead of sign-in
+fetch("/api/me").then(r => r.ok ? r.json() : null).then(me => {
+  if (!me) return;
+  document.getElementById("auth").innerHTML = '<a class="btn inv" href="/cities.html">Your cities</a>';
+  document.querySelectorAll('a[href^="/login.html"]').forEach(a => { const m = a.textContent.includes("Map"); a.href = m ? "/new.html" : "/cities.html"; if (!m) a.textContent = "Your cities"; });
+}).catch(() => {});
+</script>
+</body>
+</html>

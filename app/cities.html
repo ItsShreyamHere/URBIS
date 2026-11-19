@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your cities · URBIS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="page">
+<header class="top"><a class="brand" href="/" title="URBIS home"><img class="logo" src="img/logo_128.png" alt="" width="28" height="28">URBIS</a><span class="sep">/</span><span>Your cities</span><span class="grow"></span><a class="toplink" href="/">Home</a><span id="user" class="usermenu"></span></header>
+<main class="doc wide">
+  <section class="welcome">
+    <div>
+      <div class="titlerow"><span class="logowrap"><img class="herologo small" src="img/logo.png" alt="URBIS logo" width="64" height="64"><img class="stairs" src="img/stairs_light.svg" alt=""></span><div><p class="eyebrow">Workspace</p>
+      <h1>Your cities</h1></div></div>
+      <p class="lead">Each city is its own map: URBIS scores every built-up 100 m box, you confirm the likely slums, and it draws every settlement and numbers every house.</p>
+      <p class="actions"><a class="btn primary big" href="/new.html">New city</a><a class="btn big" href="/#how">How it works</a></p>
+    </div>
+    <div class="stats4 mini" id="tot" aria-label="Totals"></div>
+  </section>
+  <section class="demos" id="demos" hidden>
+    <h2>Try a ready-made Indian city</h2>
+    <p class="note">Checked by eye, not a full census. You get your own copy, so you can confirm or reject boxes yourself without changing the demo.</p>
+    <div class="grid" id="demogrid"></div>
+  </section>
+  <h2 class="yours">Your cities</h2>
+  <div class="grid" id="grid"></div>
+  <section class="startguide" id="empty" hidden>
+    <h2>Start with a quick test</h2>
+    <div class="steps three">
+      <div><span class="num">1</span><h3>New city</h3><p>Search a place, for example Mathare, Nairobi. Keep the 3 × 3 km box.</p></div>
+      <div><span class="num">2</span><h3>Wait about 5 min</h3><p>URBIS downloads building footprints and scores every built-up box. You can leave the page.</p></div>
+      <div><span class="num">3</span><h3>Review</h3><p>Answer slum or not slum. After 10 answers the settlement map draws itself.</p></div>
+    </div>
+  </section>
+</main>
+<footer class="foot two"><span class="footbrand"><img src="img/logo_128.png" alt="URBIS logo" width="28" height="28"><span><b>URBIS</b> is a Shreyam Mandal project.</span></span><span>Contact: <span class="mono sel">urbisx46@gmail.com</span></span></footer>
+<script src="common.js"></script>
+<script>
+const STEP = { queued: "Waiting", grid: "Preparing", buildings: "Downloading buildings", score: "Scoring", ready: "Ready", error: "Failed" };
+// satellite preview of the city's box (Esri World Imagery export)
+const thumb = b => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${b.join(",")}&bboxSR=4326&imageSR=3857&size=560,240&format=jpg&f=image`;
+async function draw() {
+  const cs = await api("/cities"); $("#empty").hidden = cs.length > 0; $("#tot").hidden = !cs.length;
+  const ready = cs.filter(c => c.settlements != null), sum = k => ready.reduce((a, c) => a + (c[k] || 0), 0);
+  $("#tot").innerHTML = `<div><b>${cs.length}</b><span>cities</span></div><div><b>${fmt(sum("settlements"))}</b><span>settlements mapped</span></div>`
+    + `<div><b>${fmt(Math.round(sum("area_ha")))}</b><span>hectares of slum</span></div><div><b>${fmt(sum("buildings"))}</b><span>houses numbered</span></div>`;
+  $("#grid").innerHTML = cs.map(c => {
+    const s = c.setup || {}, ok = s.step === "ready", pct = s.total ? Math.round(100 * s.done / s.total) : 0;
+    const body = ok
+      ? (c.settlements ? `<b>${fmt(c.settlements)}</b> settlements · <b>${fmt(c.area_ha)}</b> ha · <b>${fmt(c.buildings)}</b> houses<br>` : "Map not drawn yet: answer 10 boxes in Review<br>") + `<span class="muted">${fmt(c.checked)} boxes checked · ${fmt(c.yes)} slum</span>`
+      : s.step === "error" ? `<span class="err">${esc(s.msg || "Failed")}</span>` : `${esc(s.msg || "")}<div class="bar"><i style="width:${pct}%"></i></div>`;
+    return `<a class="card" href="/city.html?city=${encodeURIComponent(c.id)}"><img class="thumb" src="${thumb(c.bbox)}" alt="" onerror="this.remove()">
+      <div class="cardin"><div class="cardhead"><b>${esc(c.name)}</b><span class="pill dark">${STEP[s.step] || esc(s.step)}</span></div>
+      <div class="muted small">${c.km2} km² · created ${new Date(c.created * 1000).toLocaleDateString()}</div><div class="cardbody">${body}</div></div></a>`;
+  }).join("") + `<a class="card new" href="/new.html"><span class="plus">+</span>New city<span class="muted small">Search a place and draw the area</span></a>`;
+  if (cs.some(c => !["ready", "error"].includes((c.setup || {}).step))) setTimeout(draw, 5000);
+}
+async function drawDemos() {
+  const ds = await api("/demos"); $("#demos").hidden = !ds.length;
+  $("#demogrid").innerHTML = ds.map(d => `<div class="card"><img class="thumb" src="${thumb(d.bbox)}" alt="" onerror="this.remove()">
+    <div class="cardin"><div class="cardhead"><b>${esc(d.name)}</b><span class="pill sim">Checked by eye</span></div>
+    <div class="cardbody small muted">${esc(d.msg)}</div><p><button class="btn primary" data-demo="${esc(d.id)}">Open my copy</button></p></div></div>`).join("");
+  $$("[data-demo]").forEach(b => b.onclick = async () => { b.disabled = true; b.textContent = "Copying…";
+    const r = await api("/demo/" + b.dataset.demo, { method: "POST", body: "{}" }); location.href = "/city.html?city=" + encodeURIComponent(r.id); });
+}
+userMenu().then(() => { drawDemos(); draw(); });
+</script>
+</body>
+</html>

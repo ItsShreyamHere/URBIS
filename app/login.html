@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · URBIS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="page">
+<header class="top"><a class="brand" href="/"><img class="logo" src="img/logo_128.png" alt="" width="28" height="28">URBIS</a><span class="grow"></span><a class="toplink" href="/">Home</a></header>
+<main class="doc wide authpage">
+  <div class="authcol">
+  <span class="logowrap"><img class="herologo" src="img/logo.png" alt="URBIS logo" width="72" height="72"><img class="stairs" src="img/stairs_light.svg" alt=""></span>
+  <p class="eyebrow">URBIS workspace</p>
+  <h1 id="title">Sign in to URBIS</h1>
+  <form class="box form authbox" id="f">
+    <label>Username <input id="u" placeholder="3–32 letters or digits" autocomplete="username" required minlength="3" maxlength="32"></label>
+    <label>Password <input id="p" type="password" placeholder="At least 8 characters" autocomplete="current-password" required minlength="8"></label>
+    <p class="err" id="err" hidden></p>
+    <button class="btn primary wide" id="go">Sign in</button>
+  </form>
+  <p class="center box pad" id="switch"></p>
+  </div>
+  <figure class="shot authshot"><img src="img/shot_houses.jpg" alt="URBIS map with every house in a settlement outlined and numbered" width="800" height="471">
+    <figcaption>Every settlement outlined, every house numbered. Gqeberha, South Africa.</figcaption></figure>
+</main>
+<footer class="foot two"><span class="footbrand"><img src="img/logo_128.png" alt="URBIS logo" width="28" height="28"><span><b>URBIS</b> is a Shreyam Mandal project.</span></span><span>Contact: <span class="mono sel">urbisx46@gmail.com</span></span></footer>
+<script src="common.js"></script>
+<script>
+const P = new URLSearchParams(location.search); let mode = P.get("new") ? "signup" : "login";
+function render() {
+  const s = mode === "signup";
+  $("#title").textContent = s ? "Create your URBIS account" : "Sign in to URBIS";
+  $("#go").textContent = s ? "Create account" : "Sign in";
+  $("#p").autocomplete = s ? "new-password" : "current-password";
+  $("#switch").innerHTML = s ? 'Have an account? <a href="#" id="sw">Sign in</a>' : 'New to URBIS? <a href="#" id="sw">Create an account</a>';
+  $("#sw").onclick = e => { e.preventDefault(); mode = s ? "login" : "signup"; $("#err").hidden = true; render(); };
+}
+render();
+$("#f").onsubmit = async e => {
+  e.preventDefault(); $("#err").hidden = true; $("#go").disabled = true;
+  try {
+    await api("/" + mode, { method: "POST", body: JSON.stringify({ user: $("#u").value, password: $("#p").value }) });
+    const n = P.get("next"); location.href = n && n.startsWith("/") && !n.startsWith("//") ? n : "/cities.html";
+  } catch (x) { $("#err").textContent = x.message; $("#err").hidden = false; }
+  $("#go").disabled = false;
+};
+</script>
+</body>
+</html>

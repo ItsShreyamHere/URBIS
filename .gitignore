@@ -1,0 +1,8 @@
+.venv/
+runs/*
+!runs/kaggle_dense3all/
+data/
+__pycache__/
+*.pt
+.env
+*key*.json

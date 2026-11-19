@@ -1,0 +1,22 @@
+[project]
+name = "urbis"
+version = "1.0.0"
+description = "URBIS-1: global slum mapping from Sentinel-2"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy", "scipy", "scikit-image", "scikit-learn", "lightgbm",
+  "rasterio", "pyogrio", "duckdb", "pystac-client", "pyproj", "shapely", "requests", "matplotlib", "torch",
+]
+
+[project.optional-dependencies]
+site = ["markdown"]
+
+[project.scripts]
+urbis = "urbis.cli:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["urbis"]

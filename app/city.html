@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>City · URBIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/" title="URBIS home"><img class="logo" src="img/logo_128.png" alt="" width="28" height="28">URBIS</a>
+  <span class="sep">/</span>
+  <a class="toplink" href="/cities.html">Your cities</a>
+  <span class="sep">/</span>
+  <b id="cname"></b>
+  <span id="cstate" class="pill"></span>
+  <span class="grow"></span>
+  <button class="btn inv small" id="bdel">Delete city</button>
+  <span id="user" class="usermenu"></span>
+</header>
+<div class="setup" id="setup" hidden>
+  <span class="logowrap"><img class="herologo small" src="img/logo.png" alt="URBIS logo" width="64" height="64"><img class="stairs" src="img/stairs_light.svg" alt=""></span>
+  <p class="eyebrow">New city</p>
+  <h1 class="setuph" id="sname">Setting up</h1>
+  <div class="setupcard">
+    <div class="setupcol">
+      <ol class="checklist" id="slist">
+        <li data-s="grid">Prepare the 100 m grid</li>
+        <li data-s="buildings">Download building footprints <span class="muted">(Overture Maps)</span></li>
+        <li data-s="score">Score every built-up box with the slum model</li>
+      </ol>
+      <p id="smsg">—</p><div class="bar big"><i id="sbar"></i></div>
+      <p class="small muted">You can close this page; set-up continues and the city appears under Your cities.</p>
+      <p><button class="btn" id="bcancel">Cancel and delete this city</button></p>
+    </div>
+    <img class="setupimg" id="simg" alt="Satellite view of the area being set up" hidden>
+  </div>
+</div>
+<nav class="tabs" role="tablist">
+  <button data-tab="overview" class="on">Overview</button>
+  <button data-tab="review">Review <span class="count" id="tcount">0</span></button>
+  <button data-tab="map">Layers</button>
+  <button data-tab="export">Export</button>
+</nav>
+<div class="simbanner" id="simbanner" hidden>† Demo sample: URBIS ranked the boxes and the author and Claude checked them by eye at zoom 19 (no official map). Not a complete census; outlines follow 100 m boxes. This is your own copy: your answers change only this copy. Houses are a minimum (building-footprint data).</div>
+<main>
+  <aside id="panel">
+    <section data-pane="overview">
+      <div class="stats" id="stats"></div>
+      <div class="box">
+        <div class="boxhead">Review status</div>
+        <div class="boxbody" id="rstatus">—</div>
+      </div>
+      <div class="box">
+        <div class="boxhead"><span>Settlements</span><span class="muted" id="scount"></span></div>
+        <table id="stable"><thead><tr><th>#</th><th>Area ha</th><th>Houses</th><th>per ha</th></tr></thead><tbody></tbody></table>
+        <div class="boxbody muted" id="sempty" hidden>No settlements yet. Answer 10 boxes in Review and the map draws itself (about 2 minutes).</div>
+      </div>
+      <p class="note" id="hsrc"></p>
+    </section>
+
+    <section data-pane="review" hidden>
+      <div class="box">
+        <div class="boxhead"><span>Box <span id="qpos">—</span></span><span class="mono muted" id="qid"></span></div>
+        <div class="boxbody">
+          <p>Is any part of the outlined 100 m box a slum or informal settlement?</p>
+          <p class="small muted" id="qmodel"></p>
+          <div class="btns">
+            <button class="btn primary" id="byes">Slum <kbd>Y</kbd></button>
+            <button class="btn" id="bno">Not slum <kbd>N</kbd></button>
+            <button class="btn ghost" id="bskip">Skip <kbd>S</kbd></button>
+          </div>
+          <p class="muted small"><a id="gmaps" target="_blank" rel="noopener">Open in Google Maps</a> for Street View. <kbd>Z</kbd> zooms to the box.</p>
+        </div>
+      </div>
+      <div class="box">
+        <div class="boxhead">Progress</div>
+        <div class="boxbody" id="rprog">—</div>
+        <div class="bar"><i id="rbar"></i></div>
+      </div>
+      <div class="box">
+        <div class="boxhead">Settlement map</div>
+        <div class="boxbody">
+          <p class="small">Redraws by itself every 25 answers; press to redraw now. Takes about 2 minutes.</p>
+          <button class="btn" id="brebuild">Rebuild outlines</button> <span class="muted small" id="jstate"></span>
+        </div>
+      </div>
+    </section>
+
+    <section data-pane="map" hidden>
+      <div class="box">
+        <div class="boxhead">Layers</div>
+        <div class="boxbody layers">
+          <label><input type="checkbox" data-layer="outlines" checked> Settlement outlines</label>
+          <label><input type="checkbox" data-layer="houses" checked> Houses <span class="muted">(zoom in)</span></label>
+          <label><input type="checkbox" data-layer="numbers" checked> House numbers <span class="muted">(zoom in further)</span></label>
+          <label><input type="checkbox" data-layer="guess"> Model's first guess <span class="muted">(top 5 % boxes, before review)</span></label>
+          <label><input type="checkbox" data-layer="reviewed"> Reviewed boxes</label>
+          <label><input type="checkbox" data-layer="imagery" checked> Satellite imagery</label>
+        </div>
+      </div>
+      <div class="box">
+        <div class="boxhead">Legend</div>
+        <div class="boxbody legend">
+          <div><i class="lg out"></i> Slum settlement outline</div>
+          <div><i class="lg house"></i> House footprint, numbered within its settlement</div>
+          <div><i class="lg yes"></i> Box answered slum</div>
+          <div><i class="lg no"></i> Box answered not slum</div>
+          <div><i class="lg guess"></i> Model's first guess (brighter = more likely)</div>
+        </div>
+      </div>
+      <div class="box"><div class="boxhead">Selected</div><div class="boxbody" id="sel">Click a settlement or house.</div></div>
+    </section>
+
+    <section data-pane="export" hidden>
+      <div class="box">
+        <div class="boxhead">Download</div>
+        <ul class="files" id="files"></ul>
+      </div>
+      <p class="note">All vector files are in longitude/latitude (EPSG:4326). Layers: settlements (outline, area, house count) and houses (footprint, settlement number, house number, area, source).</p>
+    </section>
+  </aside>
+  <div id="map"></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
